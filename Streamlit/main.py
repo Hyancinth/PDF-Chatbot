@@ -10,6 +10,7 @@ from langchain_openai import ChatOpenAI
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains import create_retrieval_chain
 
+
 load_dotenv()
 
 apiKey = os.environ.get("OPENAI_API_KEY")
@@ -33,12 +34,13 @@ def loadPdf(pdfName):
     return docs
 
 # Create embeddings and vector store 
-def createVectorStore(docs):
+def createVectorStore(docs, pdfName):
     textSplitter = RecursiveCharacterTextSplitter()
     chunks = textSplitter.split_documents(docs)
 
     embedding = OpenAIEmbeddings(model= "text-embedding-3-large")
     vectorStore = FAISS.from_documents(chunks, embedding)
+    vectorStore.save_local(f"FAISS_{pdfName}")
 
     return vectorStore
 
@@ -62,4 +64,9 @@ def createChain(vectorStore):
         ]
     )
 
-    documentChain = create_stuff_documents_chain(model, prompt)
+    retriever = vectorStore.as_retriever()
+
+    documentChain = create_stuff_documents_chain(model, prompt) # send prompt to llm 
+    retrievalChain = create_retrieval_chain(retriever, documentChain)
+
+
